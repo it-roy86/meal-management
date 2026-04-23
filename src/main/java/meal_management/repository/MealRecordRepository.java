@@ -19,6 +19,7 @@ public interface MealRecordRepository extends JpaRepository<MealRecord, Long> {
             LocalDate startDate, LocalDate endDate);
 
     // 회사 ID와 날짜 범위로 조회 (VIEWER용)
-    List<MealRecord> findByCompanyIdAndRecordDateBetween(
+    List<MealRecord> findByCompanyIdAndRecordDateBetwe
+    en(
             Long companyId, LocalDate startDate, LocalDate endDate);
 }
