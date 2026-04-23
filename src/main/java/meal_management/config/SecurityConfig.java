@@ -1,5 +1,6 @@
 package meal_management.config;
 
+import org.springframework.http.HttpMethod;
 import lombok.RequiredArgsConstructor;
 import meal_management.util.JwtAuthenticationFilter;
 import meal_management.util.JwtUtil;
@@ -54,9 +55,17 @@ public class SecurityConfig {
 
                 // API별 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        // OPTIONS 요청 허용 (CORS Preflight)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 에러 페이지 허용 (에러 발생 시 /error로 포워딩되는 것 허용)
+                        .requestMatchers("/error").permitAll()
+                        // 로그인 API는 누구나 접근 가능
                         .requestMatchers("/api/auth/**").permitAll()
+                        // ADMIN만 접근 가능한 API
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // OPERATOR만 접근 가능한 API
                         .requestMatchers("/api/meal/input/**").hasAnyRole("ADMIN", "OPERATOR")
+                        // 나머지는 로그인한 사람이면 모두 접근 가능
                         .anyRequest().authenticated()
                 )
 
@@ -92,10 +101,10 @@ public class SecurityConfig {
         // Vue.js 개발 서버 주소 허용
         config.setAllowedOrigins(List.of("http://localhost:5173"));
 
-        // 허용할 HTTP 메서드
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+        // 허용할 HTTP 메서드 (OPTIONS 포함 - CORS Preflight 허용)
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
-        // 허용할 헤더 (Authorization에 JWT 토큰이 담겨요)
+        // 허용할 헤더
         config.setAllowedHeaders(List.of("*"));
 
         // 인증 정보 포함 허용
