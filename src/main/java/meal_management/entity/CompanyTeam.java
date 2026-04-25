@@ -1,5 +1,6 @@
 package meal_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,8 +16,11 @@ public class CompanyTeam {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 회사 참조 - JSON 변환 시 무한루프 방지를 위해 @JsonIgnore 추가
+    // CompanyTeam → Company → CompanyTeam... 무한 순환 참조를 막아줘요.
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false)
+    @JoinColumn(name = "company_id")
     private Company company;
 
     @Column(name = "team_name", nullable = false)
@@ -40,5 +44,11 @@ public class CompanyTeam {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

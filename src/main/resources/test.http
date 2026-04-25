@@ -24,3 +24,33 @@ Content-Type: application/json
   "username": "viewer",
   "password": "1234"
 }
+
+### 회사 목록 조회
+GET http://localhost:8080/api/companies
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3NzAyMDEwOSwiZXhwIjoxNzc3MTA2NTA5fQ.zqwbqjITMCSgXg8wPItli1cgT0ga8UHZoQe97-13rZs
+
+### 회사 등록
+POST http://localhost:8080/api/companies
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3NzAyMDEwOSwiZXhwIjoxNzc3MTA2NTA5fQ.zqwbqjITMCSgXg8wPItli1cgT0ga8UHZoQe97-13rZs
+
+{
+  "companyName": "대박유통",
+  "businessNumber": "1234567890",
+  "contactEmail": "test@company.com"
+}
+
+### 팀 목록 조회 (회사 ID: 1)
+GET http://localhost:8080/api/companies/1/teams
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3NzAyMDEwOSwiZXhwIjoxNzc3MTA2NTA5fQ.zqwbqjITMCSgXg8wPItli1cgT0ga8UHZoQe97-13rZs
+
+### 팀 등록 (회사 ID: 1)
+POST http://localhost:8080/api/companies/1/teams
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3NzAyMDEwOSwiZXhwIjoxNzc3MTA2NTA5fQ.zqwbqjITMCSgXg8wPItli1cgT0ga8UHZoQe97-13rZs
+
+{
+  "teamName": "개발팀",
+  "lunchPrice": 6500,
+  "dinnerPrice": 7000
+}
