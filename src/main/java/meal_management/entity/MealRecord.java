@@ -20,15 +20,13 @@ public class MealRecord {
     @Column(name = "record_date", nullable = false)
     private LocalDate recordDate;
 
-    // 순환 참조 방지
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    // 순환 참조 방지
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "company_team_id", nullable = false)
     private CompanyTeam companyTeam;
 
