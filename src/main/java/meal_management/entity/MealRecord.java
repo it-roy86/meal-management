@@ -1,5 +1,6 @@
 package meal_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,10 +20,14 @@ public class MealRecord {
     @Column(name = "record_date", nullable = false)
     private LocalDate recordDate;
 
+    // 순환 참조 방지
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    // 순환 참조 방지
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_team_id", nullable = false)
     private CompanyTeam companyTeam;
@@ -39,6 +44,8 @@ public class MealRecord {
     @Column(name = "total_amount")
     private Integer totalAmount;
 
+    // 순환 참조 방지
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;

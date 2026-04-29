@@ -2,23 +2,24 @@ package meal_management.repository;
 
 import meal_management.entity.MealRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
-@Repository
+/**
+ * 식사 기록 Repository
+ */
 public interface MealRecordRepository extends JpaRepository<MealRecord, Long> {
 
-    // 날짜와 팀 ID로 식사 기록 조회 (수정할 때 사용)
-    Optional<MealRecord> findByRecordDateAndCompanyTeamId(
-            LocalDate recordDate, Long companyTeamId);
+    /**
+     * 날짜별 식사 기록 조회
+     * WHERE record_date = ? 쿼리가 자동 생성돼요.
+     */
+    List<MealRecord> findByRecordDate(LocalDate recordDate);
 
-    // 날짜 범위로 식사 기록 조회
-    List<MealRecord> findByRecordDateBetween(
-            LocalDate startDate, LocalDate endDate);
-
-    // 회사 ID와 날짜 범위로 조회 (VIEWER용)
+    /**
+     * 회사 + 날짜 범위 식사 기록 조회 (월별 정산용)
+     * WHERE company_id = ? AND record_date BETWEEN ? AND ?
+     */
     List<MealRecord> findByCompanyIdAndRecordDateBetween(
             Long companyId, LocalDate startDate, LocalDate endDate);
 }
