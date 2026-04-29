@@ -86,4 +86,12 @@ public class MealRecordService {
         return mealRecordRepository
                 .findByCompanyIdAndRecordDateBetween(companyId, startDate, endDate);
     }
+
+    /**
+     * 날짜 범위 전체 식사 기록 조회
+     */
+    public List<MealRecord> getMealRecordsByDateRange(
+            LocalDate startDate, LocalDate endDate) {
+        return mealRecordRepository.findByRecordDateBetween(startDate, endDate);
+    }
 }

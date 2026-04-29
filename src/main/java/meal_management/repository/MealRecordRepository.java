@@ -20,6 +20,11 @@ public interface MealRecordRepository extends JpaRepository<MealRecord, Long> {
      * 회사 + 날짜 범위 식사 기록 조회 (월별 정산용)
      * WHERE company_id = ? AND record_date BETWEEN ? AND ?
      */
-    List<MealRecord> findByCompanyIdAndRecordDateBetween(
-            Long companyId, LocalDate startDate, LocalDate endDate);
+    List<MealRecord> findByCompanyIdAndRecordDateBetween(Long companyId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 날짜 범위 전체 조회
+     * WHERE record_date BETWEEN ? AND ?
+     */
+    List<MealRecord> findByRecordDateBetween(LocalDate startDate, LocalDate endDate);
 }

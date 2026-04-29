@@ -37,6 +37,33 @@ public class MealRecordController {
     }
 
     /**
+     * 식사 기록 응답 DTO
+     * @JsonIgnore로 숨겨진 회사명/팀명을 포함해서 Vue.js에 전달해요.
+     */
+    @Getter
+    public static class MealRecordResponse {
+        private Long id;
+        private String recordDate;
+        private String companyName;
+        private String teamName;
+        private Integer lunchCount;
+        private Integer dinnerCount;
+        private Integer totalCount;
+        private Integer totalAmount;
+
+        public MealRecordResponse(MealRecord record) {
+            this.id = record.getId();
+            this.recordDate = record.getRecordDate().toString();
+            this.companyName = record.getCompany().getCompanyName();
+            this.teamName = record.getCompanyTeam().getTeamName();
+            this.lunchCount = record.getLunchCount();
+            this.dinnerCount = record.getDinnerCount();
+            this.totalCount = record.getTotalCount();
+            this.totalAmount = record.getTotalAmount();
+        }
+    }
+
+    /**
      * 식사 기록 저장 API
      * POST /api/meal-records
      *
@@ -67,14 +94,25 @@ public class MealRecordController {
         return ResponseEntity.ok(mealRecord);
     }
 
-    /**
-     * 날짜별 식사 기록 조회 API
-     * GET /api/meal-records?date=2026-04-25
-     */
     @GetMapping
-    public ResponseEntity<List<MealRecord>> getMealRecords(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date) {
-        return ResponseEntity.ok(mealRecordService.getMealRecordsByDate(date));
+    public ResponseEntity<List<MealRecordResponse>> getMealRecords(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long companyId) {
+
+        List<MealRecord> records;
+
+        if (companyId != null) {
+            records = mealRecordService.getMealRecordsByCompanyAndDateRange(companyId, startDate, endDate);
+        } else {
+            records = mealRecordService.getMealRecordsByDateRange(startDate, endDate);
+        }
+
+        // MealRecord → MealRecordResponse 변환
+        List<MealRecordResponse> response = records.stream()
+                .map(MealRecordResponse::new)
+                .collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 }
