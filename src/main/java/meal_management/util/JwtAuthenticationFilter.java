@@ -33,34 +33,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. 요청 헤더에서 JWT 토큰을 꺼내요
         String token = resolveToken(request);
 
-        // 2. 토큰이 있고 유효하면 인증 처리를 해요
         if (token != null && jwtUtil.validateToken(token)) {
-
-            // 토큰에서 사용자 정보를 꺼내요
             String username = jwtUtil.getUsernameFromToken(token);
             String role = jwtUtil.getRoleFromToken(token);
+            Long companyId = jwtUtil.getCompanyIdFromToken(token); // 추가
 
-            // Spring Security에 인증 정보를 등록해요
-            // "이 사람은 username이고 role 권한을 가지고 있어요!" 라고 알려주는 거예요
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             username,
-                            null, // 비밀번호는 토큰 인증이라 필요 없어요
+                            companyId, // credentials에 companyId 저장
                             List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                            // ROLE_ADMIN, ROLE_OPERATOR, ROLE_VIEWER 형태로 등록돼요
                     );
 
-            // SecurityContext에 인증 정보를 저장해요
-            // 이후 컨트롤러에서 현재 로그인한 사람 정보를 꺼낼 수 있어요
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        // 3. 다음 필터로 요청을 넘겨요 (필터 체인 계속 진행)
         filterChain.doFilter(request, response);
     }
+
 
     /**
      * 요청 헤더에서 JWT 토큰을 꺼내는 메서드

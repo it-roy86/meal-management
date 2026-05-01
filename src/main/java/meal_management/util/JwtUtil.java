@@ -19,7 +19,10 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    // 토큰 생성
+    /**
+     * 토큰 생성 (일반 사용자용)
+     * username, role을 토큰에 담아요.
+     */
     public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
@@ -28,6 +31,31 @@ public class JwtUtil {
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    /**
+     * 토큰 생성 (VIEWER용)
+     * username, role, companyId를 토큰에 담아요.
+     * VIEWER는 자기 회사 데이터만 조회할 수 있어요.
+     */
+    public String generateViewerToken(String username, Long companyId) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", "VIEWER")
+                .claim("companyId", companyId) // 회사 ID 추가
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * 토큰에서 companyId 추출 (VIEWER용)
+     */
+    public Long getCompanyIdFromToken(String token) {
+        Object companyId = getClaims(token).get("companyId");
+        if (companyId == null) return null;
+        return Long.valueOf(companyId.toString());
     }
 
     // 토큰에서 사용자명 추출

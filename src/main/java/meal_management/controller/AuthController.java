@@ -1,6 +1,8 @@
 package meal_management.controller;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import meal_management.dto.LoginRequestDto;
 import meal_management.dto.LoginResponseDto;
 import meal_management.service.AuthService;
@@ -38,6 +40,36 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
         LoginResponseDto response = authService.login(requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * VIEWER 로그인 요청 DTO
+     */
+    @Getter
+    @Setter
+    public static class ViewerLoginRequest {
+        private Long companyId;           // 회사 ID
+        private String businessNumberLast4; // 사업자번호 뒤 4자리
+    }
+
+    /**
+     * VIEWER 로그인 API
+     * POST /api/auth/viewer-login
+     *
+     * 요청 예시:
+     * {
+     *   "companyId": 1,
+     *   "businessNumberLast4": "7890"
+     * }
+     */
+    @PostMapping("/viewer-login")
+    public ResponseEntity<LoginResponseDto> viewerLogin(
+            @RequestBody ViewerLoginRequest request) {
+        LoginResponseDto response = authService.viewerLogin(
+                request.getCompanyId(),
+                request.getBusinessNumberLast4()
+        );
         return ResponseEntity.ok(response);
     }
 }

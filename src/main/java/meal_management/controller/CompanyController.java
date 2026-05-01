@@ -91,4 +91,14 @@ public class CompanyController {
         companyService.deleteCompany(id);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 공개 회사 목록 조회 API (로그인 없이 접근 가능)
+     * 경리담당자 로그인 화면에서 회사 선택 드롭다운에 사용해요.
+     * GET /api/companies/public
+     */
+    @GetMapping("/public")
+    public ResponseEntity<List<Company>> getPublicCompanies() {
+        return ResponseEntity.ok(companyService.getActiveCompanies());
+    }
 }

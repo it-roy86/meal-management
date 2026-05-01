@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import meal_management.entity.MealRecord;
 import meal_management.service.MealRecordService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 /**
  * 월별 정산 API를 처리하는 컨트롤러예요.
  * 선택한 년월의 식사 기록을 회사/팀별로 집계해서 반환해요.
+ * VIEWER는 자기 회사 데이터만 조회할 수 있어요.
  */
 @RestController
 @RequestMapping("/api/settlement")
@@ -33,11 +35,11 @@ public class SettlementController {
     @Getter
     public static class TeamSettlement {
         private String teamName;
-        private int lunchCount;      // 중식 총 인원
-        private int dinnerCount;     // 석식 총 인원
-        private int lunchAmount;     // 중식 총 금액
-        private int dinnerAmount;    // 석식 총 금액
-        private int totalAmount;     // 합계 금액
+        private int lunchCount;     // 중식 총 인원
+        private int dinnerCount;    // 석식 총 인원
+        private int lunchAmount;    // 중식 총 금액
+        private int dinnerAmount;   // 석식 총 금액
+        private int totalAmount;    // 합계 금액
 
         public TeamSettlement(String teamName, List<MealRecord> records) {
             this.teamName = teamName;
@@ -50,7 +52,7 @@ public class SettlementController {
                     .mapToInt(r -> r.getDinnerCount() == null ? 0 : r.getDinnerCount())
                     .sum();
 
-            // 금액 계산 (단가는 팀에서 가져옴)
+            // 금액 계산 (단가는 팀에서 가져와요)
             int lunchPrice = records.isEmpty() ? 0
                     : (records.get(0).getCompanyTeam().getLunchPrice() == null ? 0
                     : records.get(0).getCompanyTeam().getLunchPrice());
@@ -115,55 +117,46 @@ public class SettlementController {
      * 월별 정산 조회 API
      * GET /api/settlement?yearMonth=2026-04&companyId=1(선택)
      *
-     * yearMonth: yyyy-MM 형식 (예: 2026-04)
-     * companyId: 선택값, 없으면 전체 조회
-     *
-     * 응답 예시:
-     * [
-     *   {
-     *     "companyId": 1,
-     *     "companyName": "대박유통",
-     *     "teams": [
-     *       {
-     *         "teamName": "개발팀",
-     *         "lunchCount": 100,
-     *         "dinnerCount": 50,
-     *         "lunchAmount": 650000,
-     *         "dinnerAmount": 350000,
-     *         "totalAmount": 1000000
-     *       }
-     *     ],
-     *     "totalAmount": 1000000
-     *   }
-     * ]
+     * ADMIN: companyId 파라미터로 전체 또는 회사별 조회
+     * VIEWER: JWT의 companyId로 자기 회사만 강제 조회
      */
     @GetMapping
     public ResponseEntity<List<CompanySettlement>> getSettlement(
             @RequestParam String yearMonth,
             @RequestParam(required = false) Long companyId) {
 
-        // yearMonth (yyyy-MM) → 해당 월의 시작일/종료일 계산
+        // JWT에서 현재 로그인한 사용자 역할과 회사 ID 가져오기
+        String role = getCurrentRole();
+        Long viewerCompanyId = getCurrentCompanyId();
+
+        // yearMonth(yyyy-MM) → 해당 월 시작일/종료일 계산
         YearMonth ym = YearMonth.parse(yearMonth);
         LocalDate startDate = ym.atDay(1);
         LocalDate endDate = ym.atEndOfMonth();
 
-        // 식사 기록 조회
         List<MealRecord> records;
-        if (companyId != null) {
-            // 특정 회사만 조회
-            records = mealRecordService
-                    .getMealRecordsByCompanyAndDateRange(companyId, startDate, endDate);
+
+        // VIEWER면 자기 회사 데이터만 강제 조회
+        if ("VIEWER".equals(role)) {
+            if (viewerCompanyId == null) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+            records = mealRecordService.getMealRecordsByCompanyAndDateRange(
+                    viewerCompanyId, startDate, endDate);
+
+        } else if (companyId != null) {
+            // ADMIN이 특정 회사 선택한 경우
+            records = mealRecordService.getMealRecordsByCompanyAndDateRange(
+                    companyId, startDate, endDate);
+
         } else {
-            // 전체 조회
-            records = mealRecordService
-                    .getMealRecordsByDateRange(startDate, endDate);
+            // ADMIN 전체 조회
+            records = mealRecordService.getMealRecordsByDateRange(startDate, endDate);
         }
 
         // 회사별로 그룹핑
         Map<Long, List<MealRecord>> byCompany = records.stream()
-                .collect(Collectors.groupingBy(
-                        r -> r.getCompany().getId()
-                ));
+                .collect(Collectors.groupingBy(r -> r.getCompany().getId()));
 
         // 회사별 정산 생성
         List<CompanySettlement> result = byCompany.entrySet().stream()
@@ -175,5 +168,35 @@ public class SettlementController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
+    }
+
+    // ========================
+    // 내부 유틸 메서드
+    // ========================
+
+    /**
+     * 현재 로그인한 사용자의 역할 조회
+     * JWT에서 바로 꺼내와요. DB 조회 없이 처리 가능해요!
+     */
+    private String getCurrentRole() {
+        return SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .iterator()
+                .next()
+                .getAuthority()
+                .replace("ROLE_", "");
+    }
+
+    /**
+     * 현재 로그인한 VIEWER의 회사 ID 조회
+     * JwtAuthenticationFilter에서 credentials에 저장한 companyId를 꺼내요.
+     * ADMIN/OPERATOR는 null 반환해요.
+     */
+    private Long getCurrentCompanyId() {
+        Object credentials = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getCredentials();
+        return credentials instanceof Long ? (Long) credentials : null;
     }
 }
