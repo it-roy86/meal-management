@@ -10,9 +10,9 @@
 - **Plan**: 2 GB RAM, 2 vCPUs, 60 GB SSD
 
 ## 📅 진행 기록
-[x] Docker 엔진 설치 및 권한 설정
-[x] Docker Compose 설치 완료
-[x] hello-world 컨테이너 실행 테스트 통과
+- [x] Docker 엔진 설치 및 권한 설정
+- [x] Docker Compose 설치 완료
+- [x] hello-world 컨테이너 실행 테스트 통과
 
 ### 1단계: 인프라 구축 (2026-05-05)
 - [x] AWS 신규 계정 생성 및 결제 정보 등록
