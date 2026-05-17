@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+
+  # PostgreSQL 데이터베이스
+  db:
+    image: postgres:16-alpine
+    container_name: meal-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # 데이터 영구 보존
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - meal-network
+    healthcheck:
+      # DB가 준비될 때까지 기다려요
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot 백엔드
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meal-backend
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - meal-network
+
+  # Vue.js 프론트엔드
+  frontend:
+    build:
+      context: ../meal-management-front
+      dockerfile: Dockerfile
+    container_name: meal-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - meal-network
+
+# 볼륨 정의
+volumes:
+  postgres_data:
+
+# 네트워크 정의
+networks:
+  meal-network:
+    driver: bridge

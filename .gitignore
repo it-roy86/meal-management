@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 환경변수 파일 (절대 GitHub에 올리면 안 됨!)
+.env
