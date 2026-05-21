@@ -94,4 +94,38 @@ public class MealRecordService {
             LocalDate startDate, LocalDate endDate) {
         return mealRecordRepository.findByRecordDateBetween(startDate, endDate);
     }
+
+    /**
+     * 식사 기록 수정
+     * 중식/석식 인원을 수정하고 총 인원/금액을 다시 계산해요.
+     */
+    @Transactional
+    public MealRecord updateMealRecord(Long id, Integer lunchCount, Integer dinnerCount) {
+
+        // 기존 식사 기록 조회
+        MealRecord mealRecord = mealRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("식사 기록을 찾을 수 없습니다."));
+
+        // 팀 단가 가져오기
+        int lunchPrice = mealRecord.getCompanyTeam().getLunchPrice() == null
+                ? 0 : mealRecord.getCompanyTeam().getLunchPrice();
+        int dinnerPrice = mealRecord.getCompanyTeam().getDinnerPrice() == null
+                ? 0 : mealRecord.getCompanyTeam().getDinnerPrice();
+
+        // 인원 업데이트
+        int newLunchCount = lunchCount == null ? 0 : lunchCount;
+        int newDinnerCount = dinnerCount == null ? 0 : dinnerCount;
+
+        // 총 인원/금액 재계산
+        int totalCount = newLunchCount + newDinnerCount;
+        int totalAmount = (newLunchCount * lunchPrice) + (newDinnerCount * dinnerPrice);
+
+        // 값 업데이트
+        mealRecord.setLunchCount(newLunchCount);
+        mealRecord.setDinnerCount(newDinnerCount);
+        mealRecord.setTotalCount(totalCount);
+        mealRecord.setTotalAmount(totalAmount);
+
+        return mealRecordRepository.save(mealRecord);
+    }
 }
