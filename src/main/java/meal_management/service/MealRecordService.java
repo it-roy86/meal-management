@@ -79,20 +79,24 @@ public class MealRecordService {
     }
 
     /**
-     * 특정 회사의 날짜 범위 식사 기록 조회 (월별 정산용)
+     * 특정 회사의 날짜 범위 식사 기록 조회 (날짜 오름차순 정렬)
+     * 식사 현황 조회 및 월별 정산에서 사용해요.
      */
     public List<MealRecord> getMealRecordsByCompanyAndDateRange(
             Long companyId, LocalDate startDate, LocalDate endDate) {
         return mealRecordRepository
-                .findByCompanyIdAndRecordDateBetween(companyId, startDate, endDate);
+                .findByCompanyIdAndRecordDateBetweenOrderByRecordDateAsc(
+                        companyId, startDate, endDate);
     }
 
     /**
-     * 날짜 범위 전체 식사 기록 조회
+     * 날짜 범위 전체 식사 기록 조회 (날짜 오름차순 정렬)
+     * 식사 현황 조회 화면에서 날짜순으로 보여줄 때 사용해요.
      */
     public List<MealRecord> getMealRecordsByDateRange(
             LocalDate startDate, LocalDate endDate) {
-        return mealRecordRepository.findByRecordDateBetween(startDate, endDate);
+        return mealRecordRepository
+                .findByRecordDateBetweenOrderByRecordDateAsc(startDate, endDate);
     }
 
     /**
