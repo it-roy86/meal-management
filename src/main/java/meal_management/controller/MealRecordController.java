@@ -45,6 +45,17 @@ public class MealRecordController {
         private Integer dinnerCount;    // 석식 인원
     }
 
+    /**
+     * 식사 기록 수정 요청 DTO
+     * 중식/석식 인원만 수정 가능해요.
+     */
+    @Getter
+    @Setter
+    public static class MealRecordUpdateRequest {
+        private Integer lunchCount;     // 수정할 중식 인원
+        private Integer dinnerCount;    // 수정할 석식 인원
+    }
+
     // ========================
     // 응답 DTO
     // ========================
@@ -184,5 +195,29 @@ public class MealRecordController {
                 .getAuthentication()
                 .getCredentials();
         return credentials instanceof Long ? (Long) credentials : null;
+    }
+
+    /**
+     * 식사 기록 수정 API
+     * PUT /api/meal-records/{id}
+     *
+     * 요청 예시:
+     * {
+     *   "lunchCount": 15,
+     *   "dinnerCount": 8
+     * }
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<MealRecordResponse> updateMealRecord(
+            @PathVariable Long id,
+            @RequestBody MealRecordUpdateRequest request) {
+
+        MealRecord mealRecord = mealRecordService.updateMealRecord(
+                id,
+                request.getLunchCount(),
+                request.getDinnerCount()
+        );
+
+        return ResponseEntity.ok(new MealRecordResponse(mealRecord));
     }
 }
