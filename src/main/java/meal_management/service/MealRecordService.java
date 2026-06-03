@@ -72,13 +72,6 @@ public class MealRecordService {
     }
 
     /**
-     * 특정 날짜의 식사 기록 목록 조회
-     */
-    public List<MealRecord> getMealRecordsByDate(LocalDate recordDate) {
-        return mealRecordRepository.findByRecordDate(recordDate);
-    }
-
-    /**
      * 특정 회사의 날짜 범위 식사 기록 조회 (날짜 오름차순 정렬)
      * 식사 현황 조회 및 월별 정산에서 사용해요.
      */
