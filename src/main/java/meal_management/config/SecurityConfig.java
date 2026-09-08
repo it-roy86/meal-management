@@ -121,7 +121,13 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Vue.js 개발 서버 주소 허용
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        // 5173이 사용 중이면 Vite가 자동으로 5174, 5175...로 띄우기 때문에
+        // 로컬 개발 편의를 위해 여러 포트를 함께 허용해요.
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:5175"
+        ));
 
         // 허용할 HTTP 메서드
         // OPTIONS는 CORS Preflight 요청에 필요해요.

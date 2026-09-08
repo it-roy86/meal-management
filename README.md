@@ -94,6 +94,33 @@
 - 모바일 반응형 (768px 기준, 테이블 → 카드 전환)
 - VIEWER 데이터 제한 (JWT의 companyId로 자기 회사만 조회)
 - 소프트 딜리트 (is_active로 데이터 보존)
+- 파일 로그 저장 (Logback, 일자별 로테이션 + 환경별 로그 레벨 분리)
+
+---
+
+## 📝 로그 (Logging)
+
+콘솔뿐 아니라 파일로도 로그가 남도록 `logback-spring.xml`을 구성했어요.
+
+| 파일 | 내용 |
+|------|------|
+| `logs/meal-management.log` | 전체 로그 |
+| `logs/meal-management-error.log` | ERROR 레벨만 모은 로그 (장애 원인 파악용) |
+
+- 날짜가 바뀌거나 10MB를 넘으면 자동으로 파일이 나뉘어요 (`meal-management.2026-09-09.0.log`)
+- 최근 30일치만 보관, 전체 용량 1GB 초과 시 오래된 파일부터 자동 삭제
+- `logs/` 폴더는 `.gitignore`에 포함되어 있어 git에 올라가지 않아요
+
+### 로그 레벨
+
+기본(운영)은 `INFO`, 로컬 개발 시에는 `local` 프로파일을 켜면 `DEBUG`까지 전부 확인할 수 있어요.
+
+```bash
+# 로컬에서 DEBUG 레벨로 실행
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+IntelliJ에서는 실행 설정(Run Configuration)의 `Active profiles`에 `local`을 입력하면 돼요.
 
 ---
 
@@ -132,6 +159,19 @@ meal-db         PostgreSQL      5432포트
 | 80 | HTTP (Vue.js 프론트엔드) |
 | 443 | HTTPS (추후 SSL 적용) |
 | 8080 | Spring Boot API |
+
+---
+
+## 💻 로컬 개발 환경
+
+| 항목 | 내용 |
+|------|------|
+| 백엔드 | `http://localhost:8080` |
+| 프론트엔드 (Vite) | 기본 `5173`, 이미 사용 중이면 `5174`, `5175` 순으로 자동 변경 |
+| CORS 허용 origin | `SecurityConfig.java`에 `5173`~`5175` 등록됨 (다른 포트로 뜨면 403 발생 → 목록에 추가 필요) |
+| DB 기본값 | `localhost:5432/meal_management`, `postgres`/`1265` (`application.properties` 기본값, 환경변수로 덮어쓰기 가능) |
+
+> ⚠️ **`.env` 파일은 `docker-compose`에서만 읽어요.** IntelliJ나 `mvnw spring-boot:run`으로 로컬에서 직접 실행할 땐 `.env`가 자동 적용되지 않으므로, `ADMIN_PASSWORD` 등을 바꾸고 싶으면 OS 환경변수나 IntelliJ 실행 설정의 Environment variables에 직접 넣어야 해요.
 
 ---
 

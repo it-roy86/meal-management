@@ -1,6 +1,7 @@
 package meal_management;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import meal_management.entity.User;
 import meal_management.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * 비밀번호는 환경변수로 관리해요. (.env 파일)
  * 환경변수가 없으면 기본값을 사용해요.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
@@ -42,7 +44,7 @@ public class DataInitializer implements ApplicationRunner {
             admin.setRole(User.Role.ADMIN);
             admin.setIsActive(true);
             userRepository.save(admin);
-            System.out.println("✅ admin 계정 생성 완료");
+            log.info("✅ admin 계정 생성 완료");
         }
 
         // operator 계정이 없을 때만 생성
@@ -53,7 +55,7 @@ public class DataInitializer implements ApplicationRunner {
             operator.setRole(User.Role.OPERATOR);
             operator.setIsActive(true);
             userRepository.save(operator);
-            System.out.println("✅ operator 계정 생성 완료");
+            log.info("✅ operator 계정 생성 완료");
         }
     }
 }
