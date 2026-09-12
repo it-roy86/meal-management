@@ -2,6 +2,7 @@ package meal_management.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
@@ -10,7 +11,11 @@ import java.util.Date;
 public class JwtUtil {
 
     // 비밀키 (32자 이상이어야 해요)
-    private final String SECRET_KEY = "meal-management-secret-key-2026-roy86!!";
+    // 환경변수 JWT_SECRET으로 관리해요. 운영 환경에서는 반드시 환경변수로 값을 지정해야 하고,
+    // 값이 바뀌면 기존에 발급된 토큰이 전부 무효화(강제 로그아웃)돼요.
+    // 환경변수가 없으면 로컬 개발 편의를 위해 기본값을 사용해요.
+    @Value("${JWT_SECRET:meal-management-secret-key-2026-roy86!!}")
+    private String SECRET_KEY;
 
     // 토큰 유효시간 (24시간)
     private final long EXPIRATION = 1000 * 60 * 60 * 24;
