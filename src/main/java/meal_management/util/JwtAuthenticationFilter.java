@@ -2,6 +2,7 @@ package meal_management.util;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -55,15 +56,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     /**
-     * 요청 헤더에서 JWT 토큰을 꺼내는 메서드
-     * Authorization 헤더 형식: "Bearer eyJhbGciOiJIUzI1NiJ9..."
-     * "Bearer " 부분을 제거하고 순수한 토큰만 반환해요.
+     * 요청에서 JWT 토큰을 꺼내는 메서드
+     * 1. Authorization 헤더 우선 확인: "Bearer eyJhbGciOiJIUzI1NiJ9..." (Postman, test.http 등에서 사용)
+     * 2. 없으면 "token" 쿠키 확인 (Vue.js 프론트엔드는 httpOnly 쿠키로 토큰을 보내요)
      */
     private String resolveToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         if (bearer != null && bearer.startsWith("Bearer ")) {
             return bearer.substring(7); // "Bearer " 7글자를 제거하고 반환
         }
+
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
         return null; // 토큰이 없으면 null 반환
     }
 }

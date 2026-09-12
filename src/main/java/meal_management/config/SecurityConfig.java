@@ -38,7 +38,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF 비활성화
-                // JWT 방식에서는 세션을 사용하지 않아서 CSRF 공격 위험이 없어요.
+                // JWT를 httpOnly 쿠키로 전달하기 때문에(AuthController 참고) 원칙적으로는
+                // CSRF 위험이 있지만, 쿠키에 sameSite=Lax를 걸어서 다른 사이트에서의
+                // 요청에는 쿠키가 자동으로 붙지 않도록 완화하고 있어요.
+                // 별도 CSRF 토큰 방식(예: CookieCsrfTokenRepository)은 아직 적용 안 함 —
+                // 필요성이 커지면(외부 사이트 연동 등) 추가 고려.
                 .csrf(csrf -> csrf.disable())
 
                 // 기본 로그인 폼 비활성화

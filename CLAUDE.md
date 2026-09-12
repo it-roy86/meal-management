@@ -15,6 +15,7 @@
 ## 기술 스택
 - Java 17, Spring Boot 3.5.13, Spring Security(JWT, jjwt 0.11.5), Spring Data JPA/Hibernate, PostgreSQL 16, Lombok.
 - 인증은 세션 없이 완전 STATELESS. `JwtAuthenticationFilter`가 매 요청마다 토큰을 검사.
+- JWT는 **httpOnly 쿠키**로 클라이언트에 전달함 (2026-09-13부터, `AuthController`). 응답 본문에는 담지 않음(XSS로 토큰 탈취 방지). `JwtAuthenticationFilter`는 `Authorization: Bearer` 헤더(Postman/test.http용)와 `token` 쿠키(프론트엔드용) 둘 다 지원. 로그아웃은 `POST /api/auth/logout`이 쿠키를 만료시켜서 처리(서버가 토큰 자체를 무효화하는 건 아님).
 - 역할(Role) 기반 접근 제어: `ADMIN`, `OPERATOR`, `VIEWER`.
   - `/api/admin/**` → ADMIN 전용
   - `/api/meal/input/**` → ADMIN, OPERATOR
@@ -38,6 +39,7 @@
 - DB 접속 정보는 환경 변수로 주입: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (미설정 시 `application.properties`의 기본값 사용 — 이 기본값은 로컬 개발용이며 운영 배포 시 반드시 환경 변수로 덮어써야 함).
 - `ADMIN_PASSWORD`, `OPERATOR_PASSWORD` 등 초기 계정 비밀번호도 환경 변수로 주입 (`docker-compose.yml` 참고).
 - `JWT_SECRET`: JWT 서명 키. `JwtUtil`에서 `@Value("${JWT_SECRET:...}")`로 주입받음. 값이 없으면 로컬 개발용 기본값을 쓰지만, **운영 배포 시에는 반드시 환경 변수로 별도 값을 지정**해야 함. 이 값을 바꾸면 기존에 발급된 모든 JWT 토큰이 즉시 무효화(전체 강제 로그아웃)되므로 배포 타이밍에 주의.
+- `COOKIE_SECURE`: JWT 쿠키의 `Secure` 속성 여부. `AuthController`에서 `@Value("${COOKIE_SECURE:false}")`로 주입받음. 기본값 `false`는 아직 HTTPS를 안 쓰는 현재 환경 기준이고, **HTTPS 적용 후에는 반드시 `true`로 설정**해야 함(안 그러면 브라우저가 쿠키를 거부하거나, HTTPS 미적용 시 평문으로 토큰이 오갈 수 있음).
 - `.env`, `logs/`는 `.gitignore`에 포함되어 있음 — 실제 비밀번호·시크릿 값은 절대 커밋하지 말 것.
 
 ## 인프라 변경 예정 (2026-09 기준)
