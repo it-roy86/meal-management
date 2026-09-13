@@ -227,6 +227,17 @@ docker compose up -d --build
 
 > ⚠️ `JWT_SECRET`은 운영 배포 시 반드시 설정해야 해요. 값이 없으면 코드에 있는 로컬 개발용 기본값이 쓰여서 보안상 위험해요. 값을 새로 설정/변경하면 기존에 발급된 모든 JWT 토큰이 무효화(전체 강제 로그아웃)되니 배포 타이밍에 유의하세요.
 
+### 🗄 DB 자동 백업
+
+`docker compose up`을 하면 `backup` 서비스가 같이 떠서 DB를 자동으로 백업해줘요 (2026-09-13 추가, `backup.sh` 참고).
+
+- **주기**: 컨테이너 시작 시 즉시 1회 + 이후 7일(주 1회)마다
+- **보관 기간**: 최근 56일(8주)치, 이전 건 자동 삭제
+- **저장 위치**: `./backups/meal_management_YYYYMMDD_HHMMSS.sql.gz` — 일부러 Docker 볼륨이 아니라 실제 호스트 폴더에 저장해요 (볼륨끼리 꼬였던 사고와 무관하게 안전하도록). `.gitignore`에 포함되어 있어 git에는 안 올라가요.
+- **주기/보관기간 조정**: `.env`에 `BACKUP_RETENTION_DAYS`(일), `BACKUP_INTERVAL_SECONDS`(초) 추가하면 기본값을 덮어쓸 수 있어요.
+- **복원 방법**: `gunzip -c backups/파일명.sql.gz | docker exec -i meal-db psql -U postgres -d meal_management`
+- ⚠️ 아직 로컬(또는 홈서버) 디스크 안에만 저장돼요 — 홈서버 자체가 고장나면 백업도 같이 사라져요. 홈서버 이전 완료 후 클라우드(구글 드라이브 등) 업로드 기능 추가 예정 (`구내식당_웹앱_기획설계서.md` 11-2 참고).
+
 ### 유용한 Docker 명령어
 
 ```bash

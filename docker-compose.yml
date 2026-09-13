@@ -23,6 +23,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # DB 자동 백업 (주 1회 pg_dump, backup.sh 참고)
+  backup:
+    image: postgres:16-alpine
+    container_name: meal-backup
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      PGPASSWORD: ${DB_PASSWORD}
+      # 보관 기간(일)과 백업 주기(초)를 바꾸고 싶으면 .env에 추가해서 덮어쓰면 돼요.
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-56}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-604800}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      # 볼륨이 아니라 실제 호스트 폴더에 저장해요 (13장 볼륨 사고와 무관하게 안전하도록)
+      - ./backups:/backups
+    entrypoint: ["sh", "/backup.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - meal-network
+
   # Spring Boot 백엔드
   backend:
     build:
