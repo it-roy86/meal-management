@@ -1,6 +1,7 @@
 package meal_management.config;
 
 import lombok.RequiredArgsConstructor;
+import meal_management.util.CsrfCookieFilter;
 import meal_management.util.JwtAuthenticationFilter;
 import meal_management.util.JwtUtil;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -37,13 +41,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF 비활성화
-                // JWT를 httpOnly 쿠키로 전달하기 때문에(AuthController 참고) 원칙적으로는
-                // CSRF 위험이 있지만, 쿠키에 sameSite=Lax를 걸어서 다른 사이트에서의
-                // 요청에는 쿠키가 자동으로 붙지 않도록 완화하고 있어요.
-                // 별도 CSRF 토큰 방식(예: CookieCsrfTokenRepository)은 아직 적용 안 함 —
-                // 필요성이 커지면(외부 사이트 연동 등) 추가 고려.
-                .csrf(csrf -> csrf.disable())
+                // CSRF 토큰 활성화 (쿠키 기반, SPA용)
+                // JWT를 httpOnly 쿠키로 전달하기 때문에(AuthController 참고) 브라우저가
+                // 요청마다 쿠키를 자동으로 실어 보내요 — sameSite=Lax로 1차 방어는 되지만,
+                // 추가 방어로 CSRF 토큰도 검증해요.
+                // - CookieCsrfTokenRepository: 토큰을 XSRF-TOKEN 쿠키로 내려줌(JS로 읽을 수 있게
+                //   httpOnly는 false) → 프론트가 이 값을 읽어서 X-XSRF-TOKEN 헤더로 되돌려보내요.
+                //   axios는 이 쿠키/헤더 이름을 기본값으로 자동 처리해줘서 프론트 코드 변경이 거의 없어요.
+                // - CsrfTokenRequestAttributeHandler: 기본 핸들러(Xor 인코딩)는 서버 렌더링 폼 전용이라
+                //   SPA에서 쿠키 값을 그대로 못 씀 — 그래서 원문 토큰을 그대로 비교하는 핸들러로 교체.
+                // - CsrfCookieFilter: 위 설정만으로는 "누가 실제로 읽어야" 쿠키가 내려가서, 매 요청마다
+                //   강제로 한번 읽어 쿠키가 항상 내려가도록 함(공식 문서의 SPA 설정 예시와 동일).
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                )
 
                 // 기본 로그인 폼 비활성화
                 // 우리는 JWT 방식을 쓰기 때문에 Spring 기본 로그인 페이지가 필요 없어요.
@@ -98,7 +110,10 @@ public class SecurityConfig {
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtUtil),
                         UsernamePasswordAuthenticationFilter.class
-                );
+                )
+
+                // CSRF 토큰 쿠키를 매 요청마다 강제로 내려주는 필터
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
         return http.build();
     }
@@ -140,7 +155,8 @@ public class SecurityConfig {
         );
 
         // 허용할 헤더
-        // Authorization 헤더에 JWT 토큰이 담겨요.
+        // Authorization 헤더(수동 테스트용 Bearer 토큰), X-XSRF-TOKEN 헤더(CSRF 토큰) 등
+        // 프론트가 보내는 커스텀 헤더를 모두 허용해요.
         config.setAllowedHeaders(List.of("*"));
 
         // 인증 정보 포함 허용

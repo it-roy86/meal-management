@@ -16,6 +16,7 @@
 - Java 17, Spring Boot 3.5.13, Spring Security(JWT, jjwt 0.11.5), Spring Data JPA/Hibernate, PostgreSQL 16, Lombok.
 - 인증은 세션 없이 완전 STATELESS. `JwtAuthenticationFilter`가 매 요청마다 토큰을 검사.
 - JWT는 **httpOnly 쿠키**로 클라이언트에 전달함 (2026-09-13부터, `AuthController`). 응답 본문에는 담지 않음(XSS로 토큰 탈취 방지). `JwtAuthenticationFilter`는 `Authorization: Bearer` 헤더(Postman/test.http용)와 `token` 쿠키(프론트엔드용) 둘 다 지원. 로그아웃은 `POST /api/auth/logout`이 쿠키를 만료시켜서 처리(서버가 토큰 자체를 무효화하는 건 아님).
+- **CSRF 토큰 활성화됨** (2026-09-13부터, `SecurityConfig` + `CsrfCookieFilter`). `XSRF-TOKEN` 쿠키(JS로 읽을 수 있음)와 `X-XSRF-TOKEN` 요청 헤더로 검증하는 쿠키 기반 방식 — 프론트 axios가 자동으로 처리해줌(`withXSRFToken: true`). **주의**: POST/PUT/DELETE/PATCH 요청은 `/api/auth/**` 같은 permitAll 엔드포인트도 CSRF 검사를 받음(인증 여부와 무관) — Postman/`test.http`로 수동 테스트할 때는 먼저 아무 GET 요청으로 `XSRF-TOKEN` 쿠키를 받아온 뒤, 그 값을 `X-XSRF-TOKEN` 헤더로 실어서 POST해야 함(같은 쿠키 세션 유지 필요).
 - 역할(Role) 기반 접근 제어: `ADMIN`, `OPERATOR`, `VIEWER`.
   - `/api/admin/**` → ADMIN 전용
   - `/api/meal/input/**` → ADMIN, OPERATOR
