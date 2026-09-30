@@ -35,6 +35,7 @@
 | Spring Security | JWT 인증 |
 | PostgreSQL | 16 |
 | JPA / Hibernate | 6.x |
+| Apache POI | 5.5.1 (엑셀 파일 생성) |
 
 ### 프론트엔드
 | 기술 | 버전 |
@@ -85,6 +86,7 @@
 - 날짜 범위 조회
 - 회사별 필터링
 - 합계 자동 계산
+- 조회 결과 엑셀 다운로드 (날짜 오름차순 + 맨 아래 합계 행 — 월말 식대청구서 첨부용)
 
 ### 월별 정산 (ADMIN/VIEWER)
 - 년월 선택으로 월간 집계
@@ -269,7 +271,7 @@ src/main/java/meal_management/
 ├── dto/             LoginRequestDto, LoginResponseDto
 ├── entity/          Company, CompanyTeam, User, MealRecord
 ├── repository/      4개
-├── service/         Auth, Company, CompanyTeam, MealRecord
+├── service/         Auth, Company, CompanyTeam, MealRecord, MealRecordExcel
 ├── util/            JwtUtil, JwtAuthenticationFilter
 └── DataInitializer.java
 

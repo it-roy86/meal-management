@@ -13,14 +13,14 @@
   - API 계약(요청/응답 필드)을 바꾸면 프론트엔드 저장소도 함께 확인/수정이 필요할 수 있음.
 
 ## 기술 스택
-- Java 17, Spring Boot 3.5.13, Spring Security(JWT, jjwt 0.11.5), Spring Data JPA/Hibernate, PostgreSQL 16, Lombok.
+- Java 17, Spring Boot 3.5.13, Spring Security(JWT, jjwt 0.11.5), Spring Data JPA/Hibernate, PostgreSQL 16, Lombok, Apache POI 5.5.1(엑셀 생성).
 - 인증은 세션 없이 완전 STATELESS. `JwtAuthenticationFilter`가 매 요청마다 토큰을 검사.
 - JWT는 **httpOnly 쿠키**로 클라이언트에 전달함 (2026-09-13부터, `AuthController`). 응답 본문에는 담지 않음(XSS로 토큰 탈취 방지). `JwtAuthenticationFilter`는 `Authorization: Bearer` 헤더(Postman/test.http용)와 `token` 쿠키(프론트엔드용) 둘 다 지원. 로그아웃은 `POST /api/auth/logout`이 쿠키를 만료시켜서 처리(서버가 토큰 자체를 무효화하는 건 아님).
 - **CSRF 토큰 활성화됨** (2026-09-13부터, `SecurityConfig` + `CsrfCookieFilter`). `XSRF-TOKEN` 쿠키(JS로 읽을 수 있음)와 `X-XSRF-TOKEN` 요청 헤더로 검증하는 쿠키 기반 방식 — 프론트 axios가 자동으로 처리해줌(`withXSRFToken: true`). **주의**: POST/PUT/DELETE/PATCH 요청은 `/api/auth/**` 같은 permitAll 엔드포인트도 CSRF 검사를 받음(인증 여부와 무관) — Postman/`test.http`로 수동 테스트할 때는 먼저 아무 GET 요청으로 `XSRF-TOKEN` 쿠키를 받아온 뒤, 그 값을 `X-XSRF-TOKEN` 헤더로 실어서 POST해야 함(같은 쿠키 세션 유지 필요).
 - 역할(Role) 기반 접근 제어: `ADMIN`, `OPERATOR`, `VIEWER`.
   - `/api/admin/**` → ADMIN 전용
   - `/api/meal/input/**` → ADMIN, OPERATOR
-  - VIEWER는 자기 회사 데이터만 조회 가능 (컨트롤러 레벨에서 `SecurityContextHolder`로 판별)
+  - VIEWER는 자기 회사 데이터만 조회 가능 (컨트롤러 레벨에서 `SecurityContextHolder`로 판별). 식사 기록은 이 분기가 `MealRecordController.findRecordsForCurrentUser()` 한 곳에 있고 조회 API와 엑셀 다운로드 API가 같이 씀 — **식사 기록을 조회하는 API를 새로 추가할 때도 권한 분기를 복사하지 말고 이 메서드를 재사용할 것** (한쪽만 고쳐져서 VIEWER가 다른 회사 데이터를 받아가는 일을 막기 위해서)
   - `/api/auth/**`, `/api/companies/public`은 인증 없이 허용(로그인 화면용)
 
 ## 빌드 / 실행 / 테스트
@@ -35,6 +35,7 @@
 - **요청/응답 DTO는 대부분 컨트롤러 안에 static inner class로 정의**하는 방식을 씀 (예: `MealRecordController.MealRecordRequest`). 최상위 `dto` 패키지는 `Auth` 관련(`LoginRequestDto`, `LoginResponseDto`)처럼 여러 곳에서 재사용되는 경우에만 사용. 새 기능 추가 시 기존 파일의 패턴을 따를 것.
 - 클래스/메서드 주석은 한국어로, "~해요" 톤의 설명형 주석 스타일을 따름 (기존 코드 참고).
 - CORS 허용 오리진은 `SecurityConfig`에 `localhost:5173~5175`로 고정되어 있음 — Vite 포트가 바뀌면 이 목록도 함께 갱신 필요.
+- **엑셀 파일은 백엔드에서 생성** (2026-09-30, `MealRecordExcelService`). 추후 메일 발송 기능(기획설계서 기능 05)에서 청구서 첨부로 재사용할 수 있게, 이 서비스는 "식사 기록 목록 → 엑셀 바이트 배열" 변환만 담당하고 조회 조건/권한 처리는 호출하는 쪽이 맡음. 엑셀을 수정할 때 주의할 점: 열 너비는 `autoSizeColumn()` 대신 고정값을 씀(서버에 한글 폰트가 없으면 계산이 틀어짐), 합계 행은 `SUM` 수식 + 저장 전 `evaluateAll()`로 결과를 미리 계산해둠(메일 미리보기 등에서 0으로 보이는 문제 방지). 자세한 경위는 `구내식당_웹앱_기획설계서.md` 18장.
 
 ## 로깅 컨벤션 (2026-09-30 추가)
 
