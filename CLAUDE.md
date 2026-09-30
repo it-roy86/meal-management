@@ -80,6 +80,7 @@ Spring Boot 기본 설정(root=INFO)이면 운영에서 `log.debug`가 안 보�
 - `ADMIN_PASSWORD`, `OPERATOR_PASSWORD` 등 초기 계정 비밀번호도 환경 변수로 주입 (`docker-compose.yml` 참고).
 - `JWT_SECRET`: JWT 서명 키. `JwtUtil`에서 `@Value("${JWT_SECRET:...}")`로 주입받음. 값이 없으면 로컬 개발용 기본값을 쓰지만, **운영 배포 시에는 반드시 환경 변수로 별도 값을 지정**해야 함. 이 값을 바꾸면 기존에 발급된 모든 JWT 토큰이 즉시 무효화(전체 강제 로그아웃)되므로 배포 타이밍에 주의.
 - `COOKIE_SECURE`: JWT 쿠키의 `Secure` 속성 여부. `AuthController`에서 `@Value("${COOKIE_SECURE:false}")`로 주입받음. 기본값 `false`는 아직 HTTPS를 안 쓰는 현재 환경 기준이고, **HTTPS 적용 후에는 반드시 `true`로 설정**해야 함(안 그러면 브라우저가 쿠키를 거부하거나, HTTPS 미적용 시 평문으로 토큰이 오갈 수 있음).
+- `TZ=Asia/Seoul`: `docker-compose.yml`의 backend 서비스에 고정함 (2026-09-30). 엔티티의 `created_at`/`updated_at`이 `LocalDateTime.now()`(서버 시간대)로 저장되기 때문에, 이 값이 없으면 컨테이너 기본값인 UTC로 9시간 느리게 저장됨. **주의: DB에는 2026-09-09 낮 이전 기록의 `created_at`/`updated_at`이 UTC로 남아 있음** (보정하지 않음 — 기획설계서 17장, `sql/check_record_date_shift.sql` 참고).
 - `.env`, `logs/`, `backups/`는 `.gitignore`에 포함되어 있음 — 실제 비밀번호·시크릿 값·DB 백업 파일은 절대 커밋하지 말 것.
 - `BACKUP_RETENTION_DAYS`(기본 56일), `BACKUP_INTERVAL_SECONDS`(기본 604800초=7일): DB 자동 백업(`backup.sh`, `docker-compose.yml`의 `backup` 서비스) 주기/보관기간. 미설정 시 기본값 사용.
 

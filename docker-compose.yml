@@ -64,6 +64,11 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       OPERATOR_PASSWORD: ${OPERATOR_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      # 서버 시간대를 한국 시간으로 고정
+      # 설정이 없으면 컨테이너 기본값(UTC)이라 created_at/updated_at(LocalDateTime.now())과
+      # 로그 시각이 9시간 느리게 저장돼요 (기획설계서 17장 과거 데이터 점검 참고).
+      # JVM은 자체 시간대 DB를 써서 alpine 이미지에 tzdata가 없어도 TZ 환경변수만으로 적용돼요.
+      TZ: Asia/Seoul
     ports:
       - "8080:8080"
     depends_on:
