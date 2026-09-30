@@ -37,6 +37,7 @@ build/
 
 # 로그 파일
 logs/
+backend.log
 
 # DB 백업 파일 (실제 데이터가 담겨있어서 git에 올리면 안 됨!)
 backups/
