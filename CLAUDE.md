@@ -37,11 +37,38 @@
 - CORS 허용 오리진은 `SecurityConfig`에 `localhost:5173~5175`로 고정되어 있음 — Vite 포트가 바뀌면 이 목록도 함께 갱신 필요.
 
 ## 로깅 컨벤션 (2026-09-30 추가)
+
 로그만 보고도 무슨 요청/처리였는지 파악할 수 있도록, **새로 작성하거나 수정하는 컨트롤러·서비스 메서드에는 로그를 남길 것** (기존 코드를 한 번에 소급 적용할 필요는 없음 — 손대는 부분부터 점진적으로).
+
 - 클래스에 Lombok `@Slf4j` 사용 (`DataInitializer` 기존 패턴과 동일).
-- 컨트롤러 진입점: `log.info`로 요청 파라미터와 처리 결과를 남김. 예: `log.info("식수 인원 등록 요청: companyId={}, date={}", companyId, date);`
-- 서비스의 분기/중간 계산 등 상세 흐름: `log.debug`.
-- 예외/실패 케이스: `log.error("...", e)` 형태로 예외 객체와 함께 남김 (메시지만 찍고 스택트레이스를 버리지 말 것).
+
+### 레벨 정책 및 로그 내용
+
+- **컨트롤러 진입점**: `log.info`로 요청 파라미터를 남기고, 처리가 끝나는 지점(성공/실패 모두)에서 다시 `log.info`로 결과를 남김 — 요청/결과를 항상 한 쌍으로 남길 것.
+  ```java
+  log.info("식수 인원 등록 요청: companyId={}, date={}", companyId, date);
+  // ... 서비스 호출 ...
+  log.info("식수 인원 등록 완료: companyId={}, date={}, count={}", companyId, date, savedCount);
+  ```
+- **서비스의 분기/중간 계산 등 상세 흐름**: `log.debug`.
+- **예외/실패 케이스**: `log.error("...", e)` 형태로 예외 객체와 함께 남김 (메시지만 찍고 스택트레이스를 버리지 말 것).
+
+### 운영 환경에서도 log.debug가 보임 (이미 적용되어 있음)
+
+Spring Boot 기본 설정(root=INFO)이면 운영에서 `log.debug`가 안 보이는 게 맞지만, 이 프로젝트는 `logback-spring.xml`에 **우리 패키지만 예외로 DEBUG를 걸어둠**:
+```xml
+<logger name="meal_management" level="DEBUG"/>
+```
+`!local` 프로파일(운영 등)도 `root`는 `INFO`지만, 이 로거 설정이 별도로 적용돼서 `meal_management` 패키지의 `log.debug`는 지금도 운영 로그에 남음. **새로 설정을 추가할 필요 없음** — 이 프로젝트는 YAML 설정 파일이 없고 `application.properties` + `logback-spring.xml` 조합만 쓰므로 `application-prod.yml` 같은 파일을 만들지 말 것.
+
+### 로그 확인 경로
+
+- **현재(로컬, `mvnw`/IntelliJ 직접 실행)**: IntelliJ 실행 콘솔 또는 `logs/meal-management.log`에서 바로 확인. `-Dspring.profiles.active=local` 없이도 `meal_management` 패키지는 위 로거 설정 덕분에 이미 DEBUG까지 보임.
+- **추후(홈서버에 Docker로 배포 시)**: `docker logs -f <컨테이너명>` (예: `meal-backend`)이 기본 확인 방법.
+- 파일 로그(`logs/meal-management.log` 전체, `logs/meal-management-error.log`는 ERROR만)는 컨테이너 안 파일이라 **컨테이너가 재생성되면 사라짐**. 지금 `docker-compose.yml`의 `backend` 서비스에는 `logs/` 볼륨 마운트가 없음(확인함) — 재시작 이력이 남는 파일 로그가 필요해지면 홈서버 구성 확정 후 바인드 마운트 추가를 검토할 것 (아직 미착수, TODO).
+
+### 공통
+
 - 메시지는 한국어로, 어떤 요청인지 구체적으로 (엔티티/식별자/파라미터 포함).
 - **비밀번호, JWT 토큰, 세션값 등 민감정보는 절대 로그에 남기지 말 것.**
 
