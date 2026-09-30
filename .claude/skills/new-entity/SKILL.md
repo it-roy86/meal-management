@@ -41,6 +41,10 @@ Entity, Repository, Service, Controller(+ 필요시 요청/응답 DTO)를 생성
 - `src/main/java/meal_management/entity/CompanyTeam.java` + 같은 이름의 Repository/Service/Controller (소프트 딜리트 + 단순 CRUD 기준)
 - `src/main/java/meal_management/config/SecurityConfig.java` (새 엔드포인트에 역할 제한이 필요한 경우)
 
+**예외 — 로그 구조는 기존 코드가 아니라 이 문서 템플릿을 따를 것.** 로깅 컨벤션은 손대는 코드부터
+점진적으로 적용 중이라, `CompanyTeam` 등 기존 컨트롤러/서비스에는 아직 요청/결과 로그 한 쌍이나 실패 처리가 없음.
+이 부분은 이미 적용된 `MealRecordController`(조회/엑셀 API)와 `MealRecordExcelService`를 기준으로 삼을 것.
+
 ## 네이밍 규칙
 
 `$0`을 `{Entity}`로 정규화했다고 할 때:
@@ -191,9 +195,8 @@ public class {Entity}Service {
      */
     @Transactional
     public {Entity} create{Entity}({Entity} {entityVar}) {
-        log.debug("{엔티티 한글명} 등록 처리: {}", {entityVar});
         {Entity} saved = {entityVar}Repository.save({entityVar});
-        log.info("{엔티티 한글명} 등록 완료: id={}", saved.getId());
+        log.debug("{엔티티 한글명} 저장: id={}", saved.getId());
         return saved;
     }
 
@@ -206,7 +209,7 @@ public class {Entity}Service {
         {Entity} existing = get{Entity}(id);
         // TODO: existing.setXxx(updated.getXxx()) 형태로 변경 가능한 필드만 갱신
         {Entity} saved = {entityVar}Repository.save(existing);
-        log.info("{엔티티 한글명} 수정 완료: id={}", id);
+        log.debug("{엔티티 한글명} 수정 저장: id={}", id);
         return saved;
     }
 
@@ -218,7 +221,7 @@ public class {Entity}Service {
     @Transactional
     public void delete{Entity}(Long id) {
         {entityVar}Repository.deleteById(id);
-        log.info("{엔티티 한글명} 삭제 완료: id={}", id);
+        log.debug("{엔티티 한글명} 삭제 처리: id={}", id);
     }
 }
 ```
@@ -226,7 +229,11 @@ public class {Entity}Service {
 - 조회(읽기) 메서드에는 `@Transactional`을 붙이지 않는다(기존 코드 기준). 쓰기(등록/수정/삭제) 메서드에만 붙인다.
 - 실패 시 예외는 커스텀 예외 클래스 없이 `new RuntimeException("한국어 메시지")` 형태를 그대로 따른다(기존 코드 전체가 이 패턴).
 - 다른 엔티티를 참조해야 하면(예: `companyId`를 받아 `Company`를 조회) `CompanyTeamService`처럼 해당 `{Related}Service`를 생성자 주입으로 받아 `get{Related}(id)`를 호출해 존재를 검증한 뒤 세팅한다.
-- 로깅 컨벤션(CLAUDE.md "로깅 컨벤션" 참고): 쓰기 메서드는 `log.info`로 결과(id 등)를 남기고, 상세 흐름은 `log.debug`. 비밀번호/토큰 등 민감정보는 절대 로그에 남기지 않는다.
+- 로깅 컨벤션(CLAUDE.md "로깅 컨벤션" 참고):
+  - 서비스는 **`log.debug`만** 쓴다 (분기, 중간 계산, 저장된 id 등 상세 흐름). 요청/결과 `log.info`는 컨트롤러가 한 쌍으로 남기므로, 서비스에서 `log.info`로 결과를 또 남기면 같은 내용이 두 번 찍힌다.
+  - 서비스에서 예외를 잡아 감쌀 때(예: `IOException` → `RuntimeException`)는 **로그를 남기지 말고** 원인(`e`)만 담아서 던진다 — `log.error`는 요청 정보를 아는 컨트롤러가 한 번만 남긴다 (`MealRecordExcelService` 참고).
+  - 엔티티 객체를 통째로 로그에 넘기지 말 것 (`toString()`이 없어서 의미 없는 해시값만 찍힘) — id나 이름 등 필요한 필드만 남긴다.
+  - 비밀번호/토큰 등 민감정보는 절대 로그에 남기지 않는다.
 
 ## 5단계 — Controller 생성
 
@@ -285,13 +292,27 @@ public class {Entity}Controller {
     // API
     // ========================
 
+    // 모든 API는 같은 구조를 따라요 (CLAUDE.md "로깅 컨벤션"):
+    //   1) log.info로 "요청" (파라미터)
+    //   2) try 안에서 처리 후 log.info로 "완료" (결과 id/건수 등)
+    //   3) catch에서 log.error로 "실패" (파라미터 + 예외 e) 후 500을 직접 반환
+    //      — 예외를 다시 던지면 전역 예외 처리기가 없어서 Tomcat이 같은 스택트레이스를 한 번 더 찍어요.
+
     /**
      * {엔티티 한글명} 목록 조회 API
      * GET /api/{kebab-plural}
      */
     @GetMapping
     public ResponseEntity<List<{Entity}>> get{Entity}s() {
-        return ResponseEntity.ok({entityVar}Service.getAll{Entity}s());
+        log.info("{엔티티 한글명} 목록 조회 요청");
+        try {
+            List<{Entity}> result = {entityVar}Service.getAll{Entity}s();
+            log.info("{엔티티 한글명} 목록 조회 완료: 결과={}건", result.size());
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            log.error("{엔티티 한글명} 목록 조회 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -300,7 +321,15 @@ public class {Entity}Controller {
      */
     @GetMapping("/{id}")
     public ResponseEntity<{Entity}> get{Entity}(@PathVariable Long id) {
-        return ResponseEntity.ok({entityVar}Service.get{Entity}(id));
+        log.info("{엔티티 한글명} 단건 조회 요청: id={}", id);
+        try {
+            {Entity} result = {entityVar}Service.get{Entity}(id);
+            log.info("{엔티티 한글명} 단건 조회 완료: id={}", id);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            log.error("{엔티티 한글명} 단건 조회 실패: id={}", id, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -309,8 +338,16 @@ public class {Entity}Controller {
      */
     @PostMapping
     public ResponseEntity<{Entity}> create{Entity}(@RequestBody {Entity} {entityVar}) {
-        log.info("{엔티티 한글명} 등록 요청");
-        return ResponseEntity.ok({entityVar}Service.create{Entity}({entityVar}));
+        // TODO: 식별에 도움되는 요청 필드(이름, 참조 id 등)를 파라미터로 남길 것 — 엔티티 객체 통째로 X
+        log.info("{엔티티 한글명} 등록 요청: {필드}={}", {entityVar}.get{필드}());
+        try {
+            {Entity} saved = {entityVar}Service.create{Entity}({entityVar});
+            log.info("{엔티티 한글명} 등록 완료: id={}", saved.getId());
+            return ResponseEntity.ok(saved);
+        } catch (RuntimeException e) {
+            log.error("{엔티티 한글명} 등록 실패: {필드}={}", {entityVar}.get{필드}(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -322,7 +359,14 @@ public class {Entity}Controller {
             @PathVariable Long id,
             @RequestBody {Entity} {entityVar}) {
         log.info("{엔티티 한글명} 수정 요청: id={}", id);
-        return ResponseEntity.ok({entityVar}Service.update{Entity}(id, {entityVar}));
+        try {
+            {Entity} updated = {entityVar}Service.update{Entity}(id, {entityVar});
+            log.info("{엔티티 한글명} 수정 완료: id={}", id);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            log.error("{엔티티 한글명} 수정 실패: id={}", id, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
@@ -332,14 +376,22 @@ public class {Entity}Controller {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete{Entity}(@PathVariable Long id) {
         log.info("{엔티티 한글명} 삭제 요청: id={}", id);
-        {entityVar}Service.delete{Entity}(id);
-        return ResponseEntity.ok().build();
+        try {
+            {entityVar}Service.delete{Entity}(id);
+            log.info("{엔티티 한글명} 삭제 완료: id={}", id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            log.error("{엔티티 한글명} 삭제 실패: id={}", id, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
 ```
 
 - 각 API 메서드 위 Javadoc에는 기존 컨트롤러들처럼 **요청/응답 JSON 예시**를 반드시 포함시킬 것.
-- VIEWER를 자기 회사 데이터로 제한해야 한다면, `MealRecordController`의 `getCurrentRole()` / `getCurrentCompanyId()` 헬퍼 메서드와 조회 API 내 분기 패턴을 그대로 복사해서 적용한다.
+- **로그 구조**(요청 → 완료/실패 한 쌍, 실패 시 500 직접 반환)는 위 템플릿대로 모든 API에 빠짐없이 적용할 것 (`MealRecordController`의 조회/엑셀 API가 실제 적용 예). 등록 API의 `{필드}` 자리표시자는 실제 필드로 바꿀 것.
+- VIEWER를 자기 회사 데이터로 제한해야 한다면, `MealRecordController`의 `getCurrentRole()` / `getCurrentCompanyId()` 헬퍼와 `findRecordsForCurrentUser()` 패턴을 참고하되, **권한 분기는 새 컨트롤러 안에 private 메서드 하나로만 만들고 모든 조회성 API(목록, 단건, 엑셀 등)가 그 메서드를 같이 쓰게 할 것.** API마다 분기를 복사하면 한쪽만 고쳐졌을 때 VIEWER가 다른 회사 데이터를 받아가는 구멍이 생김 (CLAUDE.md "역할 기반 접근 제어" 참고).
+- 식사 기록(`MealRecord`) 데이터를 조회하는 API라면 새로 만들지 말고 `MealRecordController.findRecordsForCurrentUser()`를 재사용할 것.
 - 상위 리소스에 종속되는 구조가 필요하면(`CompanyTeamController`처럼) `@RequestMapping`을 `/api/{parent-kebab-plural}/{parentId}/{kebab-plural}` 형태로 바꾸고, 각 메서드에 `@PathVariable Long {parentId}`를 추가한다.
 
 ## 6단계 — 역할 기반 접근 제어가 필요하면 SecurityConfig 갱신
@@ -357,6 +409,8 @@ public class {Entity}Controller {
    0단계에서 확인한 필드/관계로 전부 채워야 하며,
    빈 TODO가 남아있으면 안 됨 (특히 update 메서드, Request/Response DTO)
 1. 4개(또는 DTO 포함 5개) 파일이 기존 패턴과 어노테이션/네이밍이 일치하는지
+   - 컨트롤러의 모든 API가 `요청` → `완료`/`실패` 로그 한 쌍 구조인지, `{필드}` 같은 자리표시자가 남지 않았는지
+   - catch에서 예외를 다시 던지지 않고 500을 반환하는지, 서비스에 `log.info`/`log.error`가 없는지 (서비스는 `log.debug`만)
 2. `ddl-auto=update`이므로 로컬 실행(`./mvnw spring-boot:run`) 시 새 테이블이 자동 생성됨 — 운영 DB에는
    직접 마이그레이션하지 말 것(CLAUDE.md 주의사항)
 3. API 계약(요청/응답 필드)이 프론트엔드(`meal-management-front`)에서 쓰일 예정이면, 그쪽 저장소와의
