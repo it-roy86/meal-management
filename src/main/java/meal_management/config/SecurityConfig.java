@@ -103,6 +103,14 @@ public class SecurityConfig {
                         // 되돌릴 수 없는 작업이라 화면(식사 현황 조회)에서도 ADMIN에게만 버튼을 보여줘요.
                         .requestMatchers(HttpMethod.DELETE, "/api/meal-records/**").hasRole("ADMIN")
 
+                        // 식사 기록 수정은 ADMIN만 가능 (화면에서도 ADMIN에게만 수정 버튼이 보여요)
+                        .requestMatchers(HttpMethod.PUT, "/api/meal-records/**").hasRole("ADMIN")
+
+                        // 식사 기록 등록은 ADMIN, OPERATOR만 가능 (식사 입력 화면에 들어갈 수 있는 역할과 같아요)
+                        // 화면에서 버튼을 숨기는 것만으로는 VIEWER가 직접 요청을 보내는 걸 못 막아서 서버에서도 막아요.
+                        .requestMatchers(HttpMethod.POST, "/api/meal-records", "/api/meal-records/**")
+                        .hasAnyRole("ADMIN", "OPERATOR")
+
                         // 나머지는 로그인한 사람이면 모두 접근 가능
                         // JWT 토큰이 있어야 접근할 수 있어요.
                         .anyRequest().authenticated()
