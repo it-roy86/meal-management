@@ -20,6 +20,7 @@
 - 역할(Role) 기반 접근 제어: `ADMIN`, `OPERATOR`, `VIEWER`.
   - `/api/admin/**` → ADMIN 전용
   - `/api/meal/input/**` → ADMIN, OPERATOR
+  - `DELETE /api/meal-records/**` → ADMIN 전용 (2026-11-16, 식사 기록 삭제 — 기획설계서 19장). **주의**: 같은 경로의 PUT(수정)/POST(등록)는 아직 `anyRequest().authenticated()`에 걸려 있어 VIEWER도 직접 호출 가능 (미조치)
   - VIEWER는 자기 회사 데이터만 조회 가능 (컨트롤러 레벨에서 `SecurityContextHolder`로 판별). 식사 기록은 이 분기가 `MealRecordController.findRecordsForCurrentUser()` 한 곳에 있고 조회 API와 엑셀 다운로드 API가 같이 씀 — **식사 기록을 조회하는 API를 새로 추가할 때도 권한 분기를 복사하지 말고 이 메서드를 재사용할 것** (한쪽만 고쳐져서 VIEWER가 다른 회사 데이터를 받아가는 일을 막기 위해서)
   - `/api/auth/**`, `/api/companies/public`은 인증 없이 허용(로그인 화면용)
 

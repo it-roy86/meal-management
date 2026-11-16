@@ -99,6 +99,10 @@ public class SecurityConfig {
                         // ADMIN, OPERATOR만 접근 가능한 API
                         .requestMatchers("/api/meal/input/**").hasAnyRole("ADMIN", "OPERATOR")
 
+                        // 식사 기록 삭제는 ADMIN만 가능
+                        // 되돌릴 수 없는 작업이라 화면(식사 현황 조회)에서도 ADMIN에게만 버튼을 보여줘요.
+                        .requestMatchers(HttpMethod.DELETE, "/api/meal-records/**").hasRole("ADMIN")
+
                         // 나머지는 로그인한 사람이면 모두 접근 가능
                         // JWT 토큰이 있어야 접근할 수 있어요.
                         .anyRequest().authenticated()

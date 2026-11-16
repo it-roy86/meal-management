@@ -126,4 +126,19 @@ public class MealRecordService {
 
         return mealRecordRepository.save(mealRecord);
     }
+
+    /**
+     * 식사 기록 삭제
+     * DB에서 바로 지워요(되돌릴 수 없음).
+     * 삭제한 기록을 돌려줘서 호출하는 쪽(컨트롤러)이 어떤 기록이 지워졌는지 로그로 남길 수 있게 해요.
+     */
+    @Transactional
+    public MealRecord deleteMealRecord(Long id) {
+
+        MealRecord mealRecord = mealRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("식사 기록을 찾을 수 없습니다."));
+
+        mealRecordRepository.delete(mealRecord);
+        return mealRecord;
+    }
 }

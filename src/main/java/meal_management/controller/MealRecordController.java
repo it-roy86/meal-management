@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 /**
  * 식사 기록 관련 API를 처리하는 컨트롤러예요.
- * 일일 식사 인원 입력, 날짜별 조회, 조회 결과 엑셀 다운로드 기능을 담당해요.
+ * 일일 식사 인원 입력, 날짜별 조회, 조회 결과 엑셀 다운로드, 수정/삭제 기능을 담당해요.
  * VIEWER는 자기 회사 데이터만 조회할 수 있어요.
  */
 @Slf4j
@@ -337,5 +337,33 @@ public class MealRecordController {
         );
 
         return ResponseEntity.ok(new MealRecordResponse(mealRecord));
+    }
+
+    /**
+     * 식사 기록 삭제 API (ADMIN 전용 — SecurityConfig에서 막아요)
+     * DELETE /api/meal-records/{id}
+     *
+     * 성공하면 204 No Content를 돌려줘요.
+     * DB에서 바로 지워져서 되돌릴 수 없으므로, 삭제된 기록의 내용을 로그에 남겨둬요.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMealRecord(@PathVariable Long id) {
+
+        log.info("식사 기록 삭제 요청: id={}", id);
+
+        try {
+            MealRecord deleted = mealRecordService.deleteMealRecord(id);
+
+            log.info("식사 기록 삭제 완료: id={}, date={}, company={}, team={}, lunch={}, dinner={}, amount={}",
+                    id, deleted.getRecordDate(),
+                    deleted.getCompany().getCompanyName(), deleted.getCompanyTeam().getTeamName(),
+                    deleted.getLunchCount(), deleted.getDinnerCount(), deleted.getTotalAmount());
+            return ResponseEntity.noContent().build();
+
+        } catch (RuntimeException e) {
+            // 조회 API와 같은 이유로 여기서 한 번만 로그를 남기고 500을 직접 돌려줘요.
+            log.error("식사 기록 삭제 실패: id={}", id, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
